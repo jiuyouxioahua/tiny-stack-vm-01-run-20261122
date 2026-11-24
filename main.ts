@@ -8,8 +8,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// One shared encoder for PRINT: the digits (and '-') it writes are ASCII,
-// so the encoded byte length equals the string length.
+// Shared encoder for PRINT (its digits and '-' are ASCII).
 const enc = new TextEncoder();
 
 // Opcode table: [immediate bytes, values popped, values pushed].
