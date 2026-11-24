@@ -8,6 +8,10 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+// One shared encoder for PRINT: the digits (and '-') it writes are ASCII,
+// so the encoded byte length equals the string length.
+const enc = new TextEncoder();
+
 // Opcode table: [immediate bytes, values popped, values pushed].
 // An opcode absent here is unknown and traps 5.
 const T: Record<number, [number, number, number]> = {
@@ -34,17 +38,18 @@ function run(p: Uint8Array, inp: Uint8Array): { out: Uint8Array; code: number } 
   let ip = 0;
   let pc = 0;
   let steps = 0;
+  const plen = p.length;
   const end = (code: number) => ({ out: out.slice(0, ol), code });
   for (;;) {
     if (steps === 1000000) return end(10);
-    if (pc < 0 || pc >= p.length) return end(9);
+    if (pc < 0 || pc >= plen) return end(9);
     const op = p[pc];
     const t = T[op];
     if (!t) return end(5);
     const imm = t[0];
     const pops = t[1];
     const pushes = t[2];
-    if (pc + imm >= p.length) return end(9);
+    if (pc + imm >= plen) return end(9);
     steps++;
     const nx = pc + 1 + imm;
     pc = nx;
@@ -128,7 +133,8 @@ function run(p: Uint8Array, inp: Uint8Array): { out: Uint8Array; code: number } 
         const s = String(D[sp - 1]);
         if (ol + s.length > 65536) return end(11);
         sp--;
-        for (let i = 0; i < s.length; i++) out[ol++] = s.charCodeAt(i);
+        out.set(enc.encode(s), ol);
+        ol += s.length;
         break;
       }
       case 0x51:
